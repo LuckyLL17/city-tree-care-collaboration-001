@@ -1,34 +1,34 @@
-# City Tree Care Collaboration
+# 城市公共树木养护协作系统
 
-A focused full-stack starter for neighborhood tree stewardship: post a care request, browse the field board, and claim an open task as a volunteer.
+用于维护城市公共树木档案、巡检任务和居民异常反馈的基础协作系统。
 
-## Stack
+## 技术栈
 
-- Vite + React + TypeScript frontend
-- Node.js + TypeScript HTTP API backend
-- In-memory data with clean API boundaries for future persistence
+- 前端：Vite + React + TypeScript
+- 后端：Node.js + TypeScript，内置 HTTP 服务
+- 数据：当前使用内存数据，方便后续替换为 Repository、SQLite 或 PostgreSQL
 
-## Run locally
+## 基础流程
+
+建立树木档案 → 安排巡检 → 记录异常 → 派发养护 → 完成复核
+
+## 已实现
+
+- 业务模块切换与基础列表展示
+- 新增记录
+- 基于状态的流程推进
+- `/api/health` 健康检查
+- Vite 开发代理和前后端分离结构
+
+## 启动
 
 ```bash
 npm install
 npm run dev
 ```
 
-The frontend runs at `http://localhost:5174` and proxies `/api` requests to the backend at `http://localhost:3002`.
+前端：`http://localhost:5173`；后端：`http://localhost:4000`。
 
-Useful commands:
+## 扩展点
 
-```bash
-npm run dev:client      # frontend only
-npm run dev:server      # backend only
-npm run build           # frontend production build
-npm run typecheck:server
-```
-
-## Extension points
-
-- Add a map and geospatial tree records.
-- Replace the in-memory request list with a database repository.
-- Add volunteer accounts, recurring care events, photo evidence, and city arborist review.
-- Introduce notifications for urgent requests and neighborhood care days.
+当前版本只实现基础功能和主流程，数据使用内存存储。后续可增加用户认证、角色权限、分页检索、附件上传、通知、审计日志、数据库 Repository、领域事件和更细粒度的状态校验。

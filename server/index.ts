@@ -1,24 +1,11 @@
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-
-const port = Number(process.env.PORT ?? 3002);
-type CareRequest = { id: string; tree: string; neighborhood: string; need: 'Watering' | 'Mulching' | 'Pruning' | 'Inspection'; urgency: 'Routine' | 'Soon' | 'Urgent'; notes: string; status: 'open' | 'claimed'; volunteer?: string };
-const requests: CareRequest[] = [
-  { id: 'tree-1', tree: 'Old oak by the library', neighborhood: 'Riverside', need: 'Watering', urgency: 'Urgent', notes: 'Leaves are curling after a dry week.', status: 'open' },
-  { id: 'tree-2', tree: 'Row of young maples on 4th', neighborhood: 'North Market', need: 'Mulching', urgency: 'Soon', notes: 'Fresh mulch would help retain moisture.', status: 'open' },
-  { id: 'tree-3', tree: 'Linden outside the co-op', neighborhood: 'East Commons', need: 'Inspection', urgency: 'Routine', notes: 'One low branch looks stressed.', status: 'claimed', volunteer: 'Samira' },
-  { id: 'tree-4', tree: 'Pocket park plum tree', neighborhood: 'Hillview', need: 'Pruning', urgency: 'Routine', notes: 'Coordinate after the next community picnic.', status: 'claimed', volunteer: 'Leo' },
-];
-function send(response: ServerResponse, status: number, payload: unknown) { response.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); response.end(JSON.stringify(payload)); }
-function body(request: IncomingMessage): Promise<Record<string, string>> { return new Promise((resolve, reject) => { let raw = ''; request.on('data', (chunk) => raw += chunk); request.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new Error('Invalid JSON')); } }); request.on('error', reject); }); }
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
-  if (request.method === 'OPTIONS') { response.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' }); return response.end(); }
-  if (request.method === 'GET' && url.pathname === '/api/health') return send(response, 200, { ok: true, service: 'city-tree-care-api' });
-  if (request.method === 'GET' && url.pathname === '/api/requests') return send(response, 200, requests);
-  if (request.method === 'POST' && url.pathname === '/api/requests') { const input = await body(request); const item: CareRequest = { id: randomUUID(), tree: input.tree?.trim() || 'Unnamed tree', neighborhood: input.neighborhood || 'Unassigned', need: (input.need as CareRequest['need']) || 'Inspection', urgency: (input.urgency as CareRequest['urgency']) || 'Routine', notes: input.notes?.trim() || '', status: 'open' }; requests.unshift(item); return send(response, 201, item); }
-  const claimMatch = url.pathname.match(/^\/api\/requests\/([^/]+)\/claim$/);
-  if (request.method === 'POST' && claimMatch) { const item = requests.find((entry) => entry.id === claimMatch[1]); if (!item) return send(response, 404, { error: 'Care request not found' }); if (item.status === 'claimed') return send(response, 409, { error: 'Care request is already claimed' }); const input = await body(request); item.status = 'claimed'; item.volunteer = input.volunteer || 'Community volunteer'; return send(response, 200, item); }
-  return send(response, 404, { error: 'Route not found' });
-});
-server.listen(port, () => console.log(`City tree care API listening on http://localhost:${port}`));
+import { readFile } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+type Item={id:string;createdAt:string;[key:string]:string};
+const PORT=Number(process.env.PORT||4000);const allowed=["trees", "reports", "inspections"];const states=["待派单", "待执行", "处理中", "已完成"];const seed={"trees": [{"species": "香樟", "location": "青松路18号", "health": "良好", "lastInspection": "2026-09-10"}, {"species": "银杏", "location": "滨河公园东门", "health": "需关注", "lastInspection": "2026-09-12"}], "reports": [{"tree": "银杏", "reporter": "周宁", "issue": "树冠部分枝条枯黄", "status": "待派单"}], "inspections": [{"tree": "香樟", "inspector": "养护一组", "date": "2026-09-23", "status": "待执行"}]} as Record<string,Record<string,string>[]>;const data:Record<string,Item[]>=Object.fromEntries(allowed.map(key=>[key,(seed[key]||[]).map(item=>({...item,id:randomUUID(),createdAt:new Date().toISOString()}))]));const root=dirname(dirname(fileURLToPath(import.meta.url)));
+function json(res:import('node:http').ServerResponse,status:number,body:unknown){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*'});res.end(JSON.stringify(body))}
+async function body(req:import('node:http').IncomingMessage){let raw='';for await(const chunk of req)raw+=chunk;return raw?JSON.parse(raw):{}}
+function parts(url:string){return new URL(url,'http://localhost').pathname.split('/').filter(Boolean)}
+const server=createServer(async(req,res)=>{try{const p=parts(req.url||'/');if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type'});return res.end()}if(req.method==='GET'&&p[0]==='api'&&p[1]==='health')return json(res,200,{status:'ok',project:"city-tree-care-collaboration",workflow:"建立树木档案 → 安排巡检 → 记录异常 → 派发养护 → 完成复核"});if(p[0]!=='api'){if(req.method==='GET'){const html=await readFile(join(root,'index.html'),'utf8');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});return res.end(html)}return json(res,404,{error:'Not found'})}const resource=p[1];if(!resource||!allowed.includes(resource))return json(res,404,{error:'未知业务模块'});if(req.method==='GET'&&p.length===2)return json(res,200,data[resource]);if(req.method==='POST'&&p.length===2){const item={...(await body(req)),id:randomUUID(),createdAt:new Date().toISOString()} as Item;data[resource].push(item);return json(res,201,item)}const item=data[resource].find(x=>x.id===p[2]);if(!item)return json(res,404,{error:'记录不存在'});if(req.method==='POST'&&p[3]==='transition'){const next=(await body(req)).status;if(!states.includes(next))return json(res,400,{error:'不支持的状态'});item.status=next;return json(res,200,item)}if(req.method==='PATCH'&&p.length===3){Object.assign(item,await body(req));return json(res,200,item)}if(req.method==='DELETE'&&p.length===3){data[resource]=data[resource].filter(x=>x.id!==item.id);return json(res,200,{ok:true})}return json(res,405,{error:'不支持的操作'})}catch(error){return json(res,500,{error:error instanceof Error?error.message:'服务器错误'})}});server.listen(PORT,()=>console.log(`API server running at http://localhost:${PORT}`));
