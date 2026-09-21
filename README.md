@@ -27,7 +27,7 @@ npm install
 npm run dev
 ```
 
-前端：`http://localhost:5173`；后端：`http://localhost:4000`。
+前端：`http://localhost:5174`；后端：`http://localhost:4001`。
 
 ## 扩展点
 
