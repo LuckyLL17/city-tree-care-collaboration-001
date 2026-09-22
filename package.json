@@ -13,15 +13,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "better-sqlite3": "^11.10.0",
     "concurrently": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "tsx": "latest",
     "typescript": "latest",
-    "vite": "latest",
-    "tsx": "latest"
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0"
   }
 }
