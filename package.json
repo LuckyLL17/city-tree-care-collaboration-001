@@ -13,15 +13,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/sql.js": "^1.4.11",
+    "@vitejs/plugin-react": "latest",
     "concurrently": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "sql.js": "^1.14.2",
+    "tsx": "latest",
     "typescript": "latest",
-    "vite": "latest",
-    "tsx": "latest"
+    "vite": "latest"
   }
 }
